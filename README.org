@@ -46,7 +46,8 @@ cargo add sqlx -F mysql,chrono,macros,runtime-tokio-native-tls &&
 cargo add tokio -F full
 #+end_src
 
-#+begin_src toml
++ cargo.toml
+#+begin_src emacs-lisp
 [dependencies]
 # server framework
 axum = "0.6.18"

@@ -47,7 +47,7 @@ cargo add tokio -F full
 #+end_src
 
 + cargo.toml
-#+begin_src emacs-lisp
+#+begin_src toml
 [dependencies]
 # server framework
 axum = "0.6.18"
@@ -66,7 +66,7 @@ tracing-subscriber = "0.3.17"
 #+Name: src/model/member.rs
 #+description: src/model/member.rs
 + src/model/member.rs
-#+begin_src rustic
+#+begin_src rust
 #[derive(Default, Debug, Deserialize, Serialize, sqlx::Type, Clone)]
 pub struct Member {
   pub id: i32,
@@ -78,7 +78,7 @@ pub struct Member {
 }
 #+end_src
 
-#+begin_src rustic
+#+begin_src rust
 #[derive(Debug, Default, Deserialize, Serialize, sqlx::FromRow)]
 #[repr(u8)] // replaces the type of the enumeration value with u8
 pub struct MemberTypes {

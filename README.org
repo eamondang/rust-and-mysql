@@ -2,6 +2,23 @@
 #+AUTHOR: Dang Quang Vu
 #+EMAIL: eamondang@gmail.com
 
+* Table of Contents :toc:
+- [[#overview][Overview]]
+  - [[#database][Database]]
+  - [[#create-project--dependencies][Create Project & dependencies]]
+  - [[#underlying-code][Underlying Code]]
+- [[#sqlxs-query-constructor][SQLX's Query Constructor]]
+  - [[#query-function][=query= function]]
+  - [[#query_as-function][=query_as= function]]
+  - [[#query--query_as][query! & query_as!]]
+  - [[#querybuilder][QueryBuilder]]
+  - [[#bind][bind()]]
+  - [[#fetch_one][fetch_one()]]
+  - [[#fetch_optional][fetch_optional()]]
+  - [[#fetch_all][fetch_all()]]
+  - [[#execute][execute()]]
+  - [[#conn-variable][conn variable]]
+
 * Overview
 ** Database
 + Sample database & data
@@ -62,7 +79,7 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 #+end_src
 
-* Underlying Code
+** Underlying Code
 #+Name: src/model/member.rs
 #+description: src/model/member.rs
 + src/model/member.rs
@@ -93,3 +110,141 @@ pub struct MemberTypes {
 + sqlx::Type: declare this enumeraion as a type of sqlx
 + #[repr(u8)]
 + #[derive(sqlx::FromRow)]: Enables SQLX to automatically map query results to structs
+
+* SQLX's Query Constructor
+** =query= function
+#+begin_src rust
+pub fn query<DB>(
+    sql: &str
+) -> Query<'_, DB, <DB as HasArguments<'_>>::Arguments>
+where
+    DB: Database,
+#+end_src
++ It's the simplest query constructor, and the parameters it receives are SQL statements that return instances of the =Query= structure:
++ Example 1:
+  #+begin_src rust
+sqlx::query('SELECT * FROM member');
+  #+end_src
++ Example 2:
+  #+begin_src rust
+// mysql
+sqlx::query('SELECT * FROM member WHERE id=?');
+// postgresql
+sqlx::query('SELECT * FROM member WHERE id=$1');
+  #+end_src
+
++ Example 3:
+  #+begin_src rust
+// mysql
+sqlx::query('INSERT INTO member (name, balance) VALUES (?,?)');
+// postgresql
+sqlx::query('INSERT INTO member (name, balance) VALUES ($1,$2)');
+  #+end_src
+
++ Example 4:
+  #+begin_src rust
+// mysql
+sqlx::query('UPDATE member SET name=? WHERE id=?');
+// postgresql
+sqlx::query('UPDATE member SET name=$1 WHERE id=$2');
+  #+end_src
+** =query_as= function
+#+begin_src rust
+pub fn query_as<DB, O, 'q>(
+    sql: &'q str
+) -> QueryAs<'q, DB, O, <DB as HasArguments<'q>>::Arguments>
+where
+    DB: Database,
+    O: for<'r> FromRow<'r, <DB as Database>::Row>,
+#+end_src
++ The query_as() function is more efficient than the query() function when it comes to mapping query results to Rust data types.
+#+begin_src rust
+let member: models::Member = sqlx::query_as('SELECT * FROM member LIMIT 1');
+
+let count: (i64, ) = sqlx::query_as('SELECT COUNT(*) FROM member');
+#+end_src
+
++ some fields in the database are allowed to be empty (i.e. without constraints), the corresponding fields in the struct need to be added NOT NULL - Option<>
+** [[https://docs.rs/sqlx/latest/sqlx/macro.query.html][query!]] & [[https://docs.rs/sqlx/latest/sqlx/macro.query_as.html][query_as!]]
++ The difference is that macros generate code and check for errors during compilation. In terms of operational efficiency, macros will be better than functions with the same name, but macros also have requirements:
+  + Dependency need to be enabled =macros=
+  + You must define an enviroment variable that specifies the database connection address. =DATABASE_URL=
+** TODO QueryBuilder
+** [[https://docs.rs/sqlx/latest/sqlx/query/struct.QueryAs.html#method.bind][bind()]]
+#+begin_src rust
+let id: i32 = 5;
+// MySql
+sqlx::query('SELECT * FROM member WHERE id=?').bind(id);
+// PostgreSQL
+sqlx::query('SELECT * FROM member WHERE id=$1').bind(id);
+
+let member = models::Member {
+  name: "Eamon".to_string(),
+  balance: 100,
+  ..Default::default()
+};
+// MySQL
+sqlx::query_as('INSERT INTO member (name, balance) VALUES (?,?)').bind(&member.name).bind(&member.balance);
+// PostgreSQL
+sqlx::query_as('INSERT INTO member (name, balance) VALUES ($1,$2)').bind(&member.name).bind(&member.balance);
+#+end_src
+
+** [[https://docs.rs/sqlx/latest/sqlx/query/struct.QueryAs.html#method.fetch_one][fetch_one()]]
++ Used to query a single record, if the record not doesn't exist, an error is returned =query_as=
+** [[https://docs.rs/sqlx/latest/sqlx/query/struct.QueryAs.html#method.fetch_optional][fetch_optional()]]
++ Similar fetch_one, the difference is that if the record doesn't exist, return: =fetch_one() - None=
+#+begin_src rust
+// let m: Option<model::Member> = sqlx::query_as('SELECT * FROM member WHERE id=$1 AND is_del=$1 LIMIT 1')
+let m: Option<models::Member> = sqlx::query_as('SELECT * FROM member WHERE id=? AND is_del=? LIMIT 1')
+  .bind(id)
+  .bind(false)
+  .fetch_optional(&conn)
+  .await
+  .unwrap();
+#+end_src
+
+** [[https://docs.rs/sqlx/latest/sqlx/query/struct.QueryAs.html#method.fetch_all][fetch_all()]]
+#+begin_src rust
+let m: Vec<models::Member> = sqlx::query_as('SELECT * FROM member WHERE  is_del=? ORDER BY id DESC')
+  .bind(false)
+  .fetch_all(&conn)
+  .await
+  .unwrap();
+#+end_src
+
+** [[https://docs.rs/sqlx/latest/sqlx/query/struct.Query.html#method.execute][execute()]]
++ The execute() method in SQLX is typically used to execute non-query SQL statements, such as =INSERT, UPDATE, and DELETE.= The execute() method returns a QueryResult, which provides information about the outcome of the SQL statement.
++ mysql
+  #+begin_src rust
+let name = "John";
+let email = "john@example.com";
+
+let result = sqlx::query("INSERT INTO users (name, email) VALUES (?, ?)")
+    .bind(name)
+    .bind(email)
+    .execute(&pool)
+    .await?;
+
+let rows_affected = result.rows_affected();
+let last_insert_id = result.last_insert_id();
+  #+end_src
+
++ rows_affected() get the number of rows affected by the SQL statement.
++ last_insert_id() to get the last inserted ID of the record.
+
++ NOTE: Trong portgresql, auto-numbered IDs are not automatically returned after an INSERT statement. to get the last ID, you need to use the RETURNING clause in SQL and the fetch_one() to get the id.
++ postgresql
+#+begin_src rust
+let name = "John";
+let email = "john@example.com";
+
+let result = sqlx::query("INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id")
+    .bind(name)
+    .bind(email)
+    .fetch_one(&pool)
+    .await?;
+
+let last_insert_id = result.get::<i32, _>(0);
+#+end_src
+** conn variable
++ The conn variable in the example is a reference to a database connection, which is used to execute SQL statements against a MySQL database and retrieve results.

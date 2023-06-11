@@ -64,7 +64,9 @@ tracing-subscriber = "0.3.17"
 * Underlying Code
 #+Name: src/model/member.rs
 #+description: src/model/member.rs
++ src/model/member.rs
 #+begin_src rustic
+#[derive(Default, Debug, Deserialize, Serialize, sqlx::Type, Clone)]
 pub struct Member {
   pub id: i32,
   pub name: String,
@@ -74,3 +76,19 @@ pub struct Member {
   pyb is_del: bool,
 }
 #+end_src
+
+#+begin_src rustic
+#[derive(Debug, Default, Deserialize, Serialize, sqlx::FromRow)]
+#[repr(u8)] // replaces the type of the enumeration value with u8
+pub struct MemberTypes {
+  #[default]
+  Normal,
+  Silver,
+  Gold,
+  Diamond,
+}
+#+end_src
+
++ sqlx::Type: declare this enumeraion as a type of sqlx
++ #[repr(u8)]
++ #[derive(sqlx::FromRow)]: Enables SQLX to automatically map query results to structs

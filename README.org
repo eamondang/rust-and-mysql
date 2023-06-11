@@ -1,0 +1,76 @@
+#+TITLE: SQLx Course
+#+AUTHOR: Dang Quang Vu
+#+EMAIL: eamondang@gmail.com
+
+* Overview
+** Database
++ Sample database & data
+| Field Name | Illustrate      |
+| id         | uuid            |
+| name       | string          |
+| dateline   | datetime        |
+| balance    | account balance |
+| types      | member types    |
+| is_del     | boolean         |
+
+#+begin_src sql
+create table member {
+    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(30) NOT NULL COMMENT 'Member Name',
+    dateline DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Join Time',
+    balance INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Account Balance',
+    types TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'types of member',
+    is_del BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether to delete',
+    UNIQUE(name)
+} ENGINE=INNODB CHARSET=UTF8MB4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO member (name, balance, types) VALUES
+       ('eamon', 100000, 3),
+       ('dang', 20000, 1),
+       ('vu', 30000,0),
+       ('hoang', 0,0);
+#+end_src
+
+** Create Project & dependencies
++ Create new project
+#+begin_src sh :results output
+cargo new axum-sqlx
+#+end_src
+
++ install dependencies
+#+begin_src sh :results output
+cargo add axum config dotenv tracing tracing-subscriber &&
+cargo add chrono -F serde &&
+cargo add serde -F derive &&
+cargo add sqlx -F mysql,chrono,macros,runtime-tokio-native-tls &&
+cargo add tokio -F full
+#+end_src
+
+#+begin_src toml
+[dependencies]
+# server framework
+axum = "0.6.18"
+# Supports mapping to mySql time-dependent data types
+chrono = { version = "0.4.26", features = ["serde"] }
+config = "0.13.3"
+dotenv = "0.15.0"
+serde = { version = "1.0.164", features = ["derive"] }
+sqlx = { version = "0.6.3", features = ["mysql", "chrono", "macros", "runtime-tokio-native-tls"] }
+tokio = { version = "1.28.2", features = ["full"] }
+tracing = "0.1.37"
+tracing-subscriber = "0.3.17"
+#+end_src
+
+* Underlying Code
+#+Name: src/model/member.rs
+#+description: src/model/member.rs
+#+begin_src rustic
+pub struct Member {
+  pub id: i32,
+  pub name: String,
+  pub dateline: chrono::Datetime<chrono::Local>,
+  pub balance: u32,
+  pub types: MemberTypes,
+  pyb is_del: bool,
+}
+#+end_src

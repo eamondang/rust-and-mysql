@@ -31,21 +31,19 @@
 | is_del     | boolean         |
 
 #+begin_src sql
-create table member {
-    id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(30) NOT NULL COMMENT 'Member Name',
-    dateline DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Join Time',
-    balance INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Account Balance',
-    types TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'types of member',
-    is_del BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Whether to delete',
-    UNIQUE(name)
-} ENGINE=INNODB CHARSET=UTF8MB4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE member (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL UNIQUE,
+    dateline TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    balance INTEGER NOT NULL DEFAULT 0,
+    types SMALLINT NOT NULL DEFAULT 0,
+    is_del BOOLEAN NOT NULL DEFAULT FALSE
+);
 
-INSERT INTO member (name, balance, types) VALUES
-       ('eamon', 100000, 3),
-       ('dang', 20000, 1),
-       ('vu', 30000,0),
-       ('hoang', 0,0);
+INSERT INTO member (name, balance, types) VALUES ('eamon', 100000, 3),
+                   ('dang', 20000, 1),
+                   ('vu', 30000, 0),
+                   ('hoang', 0, 0);
 #+end_src
 
 ** Create Project & dependencies
@@ -120,34 +118,34 @@ pub fn query<DB>(
 where
     DB: Database,
 #+end_src
-+ It's the simplest query constructor, and the parameters it receives are SQL statements that return instances of the =Query= structure:
-+ Example 1:
-  #+begin_src rust
-sqlx::query('SELECT * FROM member');
-  #+end_src
-+ Example 2:
-  #+begin_src rust
-// mysql
-sqlx::query('SELECT * FROM member WHERE id=?');
-// postgresql
-sqlx::query('SELECT * FROM member WHERE id=$1');
-  #+end_src
+1. It's the simplest query constructor, and the parameters it receives are SQL statements that return instances of the =Query= structure:
+2. Example 1:
+   #+begin_src rust
+ sqlx::query('SELECT * FROM member');
+   #+end_src
+3. Example 2:
+   #+begin_src rust
+ // mysql
+ sqlx::query('SELECT * FROM member WHERE id=?');
+ // postgresql
+ sqlx::query('SELECT * FROM member WHERE id=$1');
+   #+end_src
 
-+ Example 3:
-  #+begin_src rust
-// mysql
-sqlx::query('INSERT INTO member (name, balance) VALUES (?,?)');
-// postgresql
-sqlx::query('INSERT INTO member (name, balance) VALUES ($1,$2)');
-  #+end_src
+4. Example 3:
+   #+begin_src rust
+ // mysql
+ sqlx::query('INSERT INTO member (name, balance) VALUES (?,?)');
+ // postgresql
+ sqlx::query('INSERT INTO member (name, balance) VALUES ($1,$2)');
+   #+end_src
 
-+ Example 4:
-  #+begin_src rust
-// mysql
-sqlx::query('UPDATE member SET name=? WHERE id=?');
-// postgresql
-sqlx::query('UPDATE member SET name=$1 WHERE id=$2');
-  #+end_src
+5. Example 4:
+   #+begin_src rust
+ // mysql
+ sqlx::query('UPDATE member SET name=? WHERE id=?');
+ // postgresql
+ sqlx::query('UPDATE member SET name=$1 WHERE id=$2');
+   #+end_src
 ** =query_as= function
 #+begin_src rust
 pub fn query_as<DB, O, 'q>(

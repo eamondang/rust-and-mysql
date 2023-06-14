@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono;
 
-#[derive(Default, Debug, Deserialize, Serialize, sqlx::Type, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, sqlx::Type, Clone)]
 #[repr(u8)]
 pub enum MemberTypes {
   #[default]
@@ -13,7 +12,7 @@ pub enum MemberTypes {
 
 #[derive(Debug, Default, Deserialize, Serialize, sqlx::FromRow)]
 pub struct Member {
-  pub id: i32,
+  pub id: u32,
   pub name: String,
   pub dateline: chrono::DateTime<chrono::Local>,
   pub balance: u32,
